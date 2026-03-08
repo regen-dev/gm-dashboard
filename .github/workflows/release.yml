@@ -21,7 +21,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libsodium-dev libseccomp-dev libcurl4-openssl-dev
+            libsodium-dev libseccomp-dev libcurl4-openssl-dev \
+            patchelf file dpkg-dev
 
       - name: Install Qt 6.10
         uses: jurplel/install-qt-action@v4
@@ -59,39 +60,188 @@ jobs:
       - name: Run tests
         run: make test QTDIR="$QTDIR" ARCH=x86-64-v3
 
-      - name: Generate version
+      - name: Generate version and changelog
         run: |
           VERSION="$(date -u +%Y.%m.%d)-$(echo $GITHUB_SHA | head -c 7)"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "TAG=v${VERSION}" >> "$GITHUB_ENV"
 
-      - name: Package release
+          # Changelog from commits since last tag (or all if first release)
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV_TAG}..HEAD"
+          fi
+
+          {
+            echo "## What's Changed"
+            echo ""
+            git log $RANGE --pretty=format:"- %s (%h)" --no-merges
+            echo ""
+            echo ""
+            echo "## Packages"
+            echo ""
+            echo "| Package | Description |"
+            echo "|---------|-------------|"
+            echo "| \`.deb\` | Debian/Ubuntu — self-contained, includes Qt6 libs |"
+            echo "| \`.AppImage\` | Portable — download, chmod +x, run |"
+            echo "| \`.tar.gz\` | Manual install via \`install.sh\` |"
+            echo ""
+            echo "## Verify"
+            echo ""
+            echo "\`\`\`bash"
+            echo "# Check integrity"
+            echo "sha256sum -c SHA256SUMS.txt"
+            echo ""
+            echo "# Verify signature (requires cosign)"
+            echo "cosign verify-blob SHA256SUMS.txt \\"
+            echo "  --bundle SHA256SUMS.txt.cosign.bundle \\"
+            echo "  --certificate-identity-regexp 'github.com/regen-dev/gm-dashboard' \\"
+            echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+            echo "\`\`\`"
+          } > CHANGELOG.md
+
+      # ── Bundle Qt libs with linuxdeploy ──
+
+      - name: Download linuxdeploy
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+          # Extract (no FUSE needed)
+          ./linuxdeploy-x86_64.AppImage --appimage-extract > /dev/null 2>&1
+          mv squashfs-root linuxdeploy-extracted
+          ./linuxdeploy-plugin-qt-x86_64.AppImage --appimage-extract > /dev/null 2>&1
+          mv squashfs-root linuxdeploy-plugin-qt-extracted
+
+      - name: Create AppDir
+        run: |
+          export PATH="$PWD/linuxdeploy-extracted/usr/bin:$PWD/linuxdeploy-plugin-qt-extracted/usr/bin:$PATH"
+          export QMAKE="$QTDIR/bin/qmake"
+          export QT_PLUGIN_PATH="$QTDIR/plugins"
+          export LD_LIBRARY_PATH="$QTDIR/lib:$LD_LIBRARY_PATH"
+          export EXTRA_QT_MODULES="webengine;webchannel;positioning"
+          export EXTRA_PLATFORM_PLUGINS="libqxcb.so"
+
+          mkdir -p AppDir/usr/{bin,lib/gm-dashboard,share/gm-dashboard,share/applications,share/icons/hicolor/256x256/apps}
+
+          # Binaries
+          cp gm-dashboard gm-viewer gm-sign gm-config AppDir/usr/bin/
+
+          # Plugins (pre-signed)
+          cp plugins/*.so plugins/*.so.sig plugins/*.html AppDir/usr/lib/gm-dashboard/
+
+          # Data
+          cp base.html config.example marketplace.pub AppDir/usr/share/gm-dashboard/
+          cp gm-plugin.h AppDir/usr/share/gm-dashboard/
+          cp gm-dashboard.desktop AppDir/usr/share/applications/
+          cp gm-dashboard.png AppDir/usr/share/icons/hicolor/256x256/apps/
+
+          # Run linuxdeploy to bundle Qt libs
+          linuxdeploy \
+            --appdir AppDir \
+            --executable AppDir/usr/bin/gm-dashboard \
+            --executable AppDir/usr/bin/gm-viewer \
+            --executable AppDir/usr/bin/gm-sign \
+            --executable AppDir/usr/bin/gm-config \
+            --desktop-file gm-dashboard.desktop \
+            --icon-file gm-dashboard.png \
+            --plugin qt
+
+      - name: Build AppImage
+        run: |
+          export PATH="$PWD/linuxdeploy-extracted/usr/bin:$PWD/linuxdeploy-plugin-qt-extracted/usr/bin:$PATH"
+          export QMAKE="$QTDIR/bin/qmake"
+          export QT_PLUGIN_PATH="$QTDIR/plugins"
+          export LD_LIBRARY_PATH="$QTDIR/lib:$LD_LIBRARY_PATH"
+          export EXTRA_QT_MODULES="webengine;webchannel;positioning"
+
+          # Generate AppImage from existing AppDir
+          linuxdeploy --appdir AppDir --output appimage || echo "::warning::AppImage generation failed (WebEngine bundling issue)"
+          # Rename if generated
+          mv GM_Dashboard-*.AppImage "gm-dashboard-${VERSION}-x86_64.AppImage" 2>/dev/null || true
+
+      # ── .deb package ──
+
+      - name: Build .deb
+        run: |
+          DEB="gm-dashboard-${VERSION}-amd64"
+          mkdir -p "$DEB/DEBIAN"
+          mkdir -p "$DEB/opt/gm-dashboard"/{bin,lib,lib/gm-dashboard,share,plugins}
+          mkdir -p "$DEB/usr/local/bin"
+          mkdir -p "$DEB/usr/share/applications"
+          mkdir -p "$DEB/usr/share/icons/hicolor/scalable/apps"
+          mkdir -p "$DEB/usr/share/icons/hicolor/256x256/apps"
+
+          # Copy everything from AppDir (has bundled Qt libs)
+          cp -a AppDir/usr/bin/* "$DEB/opt/gm-dashboard/bin/"
+          cp -a AppDir/usr/lib/*.so* "$DEB/opt/gm-dashboard/lib/" 2>/dev/null || true
+          cp -a AppDir/usr/lib/gm-dashboard/* "$DEB/opt/gm-dashboard/lib/gm-dashboard/"
+          # Qt plugins (platforms, etc.)
+          cp -a AppDir/usr/plugins "$DEB/opt/gm-dashboard/" 2>/dev/null || true
+
+          # Data files
+          cp base.html config.example marketplace.pub gm-plugin.h "$DEB/opt/gm-dashboard/share/"
+
+          # Desktop + icons
+          sed "s|Exec=gm-dashboard|Exec=/opt/gm-dashboard/bin/gm-dashboard|" \
+            gm-dashboard.desktop > "$DEB/usr/share/applications/gm-dashboard.desktop"
+          cp gm-dashboard.svg "$DEB/usr/share/icons/hicolor/scalable/apps/"
+          cp gm-dashboard.png "$DEB/usr/share/icons/hicolor/256x256/apps/"
+
+          # Symlinks in /usr/local/bin
+          for bin in gm-dashboard gm-viewer gm-sign gm-config; do
+            ln -sf "/opt/gm-dashboard/bin/$bin" "$DEB/usr/local/bin/$bin"
+          done
+
+          # Control file
+          INSTALLED_SIZE=$(du -sk "$DEB" | cut -f1)
+          cat > "$DEB/DEBIAN/control" << EOF
+          Package: gm-dashboard
+          Version: ${VERSION}
+          Architecture: amd64
+          Maintainer: REGEN <120606503+regen-dev@users.noreply.github.com>
+          Installed-Size: ${INSTALLED_SIZE}
+          Depends: libsodium23, libseccomp2, libcurl4t64 | libcurl4
+          Description: Sci-fi Good Morning dashboard for Linux
+           C++17/Qt6 plugin-based dashboard with Ed25519 signing,
+           Landlock+seccomp sandbox, and process isolation.
+           Qt6 libraries are bundled — no external Qt dependency needed.
+          EOF
+          # Remove leading spaces from control (heredoc indentation)
+          sed -i 's/^          //' "$DEB/DEBIAN/control"
+
+          dpkg-deb --build "$DEB" "gm-dashboard-${VERSION}-amd64.deb"
+
+      # ── Tarball ──
+
+      - name: Package tarball
         run: |
           PKG="gm-dashboard-${VERSION}-linux-x86_64"
           mkdir -p "$PKG"/{bin,lib/gm-dashboard,share/gm-dashboard,include/gm-dashboard,share/icons,share/applications}
 
           cp gm-dashboard gm-sign gm-config gm-viewer "$PKG/bin/"
           cp plugins/*.so plugins/*.so.sig plugins/*.html "$PKG/lib/gm-dashboard/"
-          cp base.html "$PKG/share/gm-dashboard/"
+          cp base.html config.example marketplace.pub "$PKG/share/gm-dashboard/"
           cp gm-plugin.h "$PKG/include/gm-dashboard/"
-          cp config.example "$PKG/share/gm-dashboard/"
-          cp marketplace.pub "$PKG/share/gm-dashboard/"
           cp gm-dashboard.desktop "$PKG/share/applications/"
-          cp gm-dashboard.svg "$PKG/share/icons/"
-          cp gm-dashboard.png "$PKG/share/icons/"
-          cp README.md LICENSE "$PKG/"
-          cp -r screenshots "$PKG/"
-          cp install.sh "$PKG/"
+          cp gm-dashboard.svg gm-dashboard.png "$PKG/share/icons/"
+          cp README.md LICENSE install.sh "$PKG/"
           chmod +x "$PKG/install.sh"
 
           tar czf "${PKG}.tar.gz" "$PKG"
-          sha256sum "${PKG}.tar.gz" > SHA256SUMS.txt
+
+      # ── Checksums + signing ──
 
       - name: Wipe signing key
         if: always()
         run: |
           test -f "$HOME/.config/gm-dashboard/marketplace.sec" && \
             shred -u "$HOME/.config/gm-dashboard/marketplace.sec" || true
+
+      - name: Generate checksums
+        run: sha256sum gm-dashboard-${VERSION}* > SHA256SUMS.txt
 
       - name: Sign checksums (cosign keyless)
         uses: sigstore/cosign-installer@v3
@@ -103,9 +253,11 @@ jobs:
         with:
           tag_name: ${{ env.TAG }}
           name: ${{ env.VERSION }}
-          generate_release_notes: true
+          body_path: CHANGELOG.md
           make_latest: true
           files: |
+            gm-dashboard-*-amd64.deb
+            gm-dashboard-*-x86_64.AppImage
             gm-dashboard-*-linux-x86_64.tar.gz
             SHA256SUMS.txt
             SHA256SUMS.txt.cosign.bundle

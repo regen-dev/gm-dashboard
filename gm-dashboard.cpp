@@ -578,8 +578,11 @@ static void openViewer(const char *htmlPath, const QByteArray &configDir)
 	// LCOV_EXCL_START — forked child, exec replaces process
 	setsid();
 
+	/* Try PATH first (AppImage/system install), then ~/.local/bin/ fallback */
+	execlp("gm-viewer", "gm-viewer", htmlPath,
+		configDir.constData(), static_cast<char *>(nullptr));
 	QByteArray viewer = (QDir::homePath() + "/.local/bin/gm-viewer").toLocal8Bit();
-	execlp(viewer.constData(), "gm-viewer", htmlPath,
+	execl(viewer.constData(), "gm-viewer", htmlPath,
 		configDir.constData(), static_cast<char *>(nullptr));
 	perror("gm-viewer");
 	_exit(1);
