@@ -241,7 +241,7 @@ jobs:
             shred -u "$HOME/.config/gm-dashboard/marketplace.sec" || true
 
       - name: Generate checksums
-        run: sha256sum gm-dashboard-${VERSION}* > SHA256SUMS.txt
+        run: sha256sum gm-dashboard-${VERSION}*.{deb,AppImage,tar.gz} > SHA256SUMS.txt
 
       - name: Sign checksums (cosign keyless)
         uses: sigstore/cosign-installer@v3
