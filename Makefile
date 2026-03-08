@@ -126,8 +126,8 @@ tests/test_weather: tests/test_weather.cpp tests/test_weather.moc plugins/weathe
 tests/test_system: tests/test_system.cpp tests/test_system.moc
 	$(CXX) $(CXXFLAGS) $(QT_TEST_INC) -o $@ $< -ldl $(QT_TEST_LIB)
 
-tests/test_github: tests/test_github.cpp tests/test_github.moc
-	$(CXX) $(CXXFLAGS) $(QT_TEST_INC) -o $@ $< -ldl $(QT_TEST_LIB)
+tests/test_github: tests/test_github.cpp tests/test_github.moc plugins/github.cpp gm-plugin.h
+	$(CXX) $(CXXFLAGS) $(QT_TEST_INC) -o $@ $< $(QT_TEST_LIB)
 
 tests/test_dashboard: tests/test_dashboard.cpp tests/test_dashboard.moc
 	$(CXX) $(CXXFLAGS) $(QT_TEST_INC) -o $@ $< $(QT_TEST_LIB)

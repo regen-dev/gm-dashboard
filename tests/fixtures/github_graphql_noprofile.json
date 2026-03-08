@@ -1,0 +1,12 @@
+{
+  "data": {
+    "r0": {
+      "nameWithOwner": "anthropics/claude-code",
+      "stargazerCount": 45200,
+      "forkCount": 1800,
+      "watchers": {"totalCount": 523},
+      "issues": {"totalCount": 150},
+      "description": "An agentic coding tool"
+    }
+  }
+}

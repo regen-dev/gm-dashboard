@@ -1,0 +1,37 @@
+{
+  "data": {
+    "viewer": {
+      "login": "testuser",
+      "name": "Test User",
+      "followers": {"totalCount": 42},
+      "following": {"totalCount": 15},
+      "repositories": {
+        "totalCount": 30,
+        "nodes": [
+          {"stargazerCount": 100, "forkCount": 10},
+          {"stargazerCount": 50, "forkCount": 5},
+          {"stargazerCount": 25, "forkCount": 2}
+        ]
+      },
+      "contributionsCollection": {
+        "contributionCalendar": {"totalContributions": 1234}
+      }
+    },
+    "r0": {
+      "nameWithOwner": "anthropics/claude-code",
+      "stargazerCount": 45200,
+      "forkCount": 1800,
+      "watchers": {"totalCount": 523},
+      "issues": {"totalCount": 150},
+      "description": "An agentic coding tool"
+    },
+    "r1": {
+      "nameWithOwner": "torvalds/linux",
+      "stargazerCount": 198000,
+      "forkCount": 55800,
+      "watchers": {"totalCount": 8100},
+      "issues": {"totalCount": 300},
+      "description": "Linux kernel source tree"
+    }
+  }
+}
