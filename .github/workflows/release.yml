@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
 
 permissions:
   contents: write
@@ -14,6 +14,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install system dependencies
         run: |
@@ -57,19 +59,19 @@ jobs:
       - name: Run tests
         run: make test QTDIR="$QTDIR" ARCH=x86-64-v3
 
+      - name: Generate version
+        run: |
+          VERSION="$(date -u +%Y.%m.%d)-$(echo $GITHUB_SHA | head -c 7)"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "TAG=v${VERSION}" >> "$GITHUB_ENV"
+
       - name: Package release
         run: |
-          VERSION="${GITHUB_REF_NAME}"
           PKG="gm-dashboard-${VERSION}-linux-x86_64"
           mkdir -p "$PKG"/{bin,lib/gm-dashboard,share/gm-dashboard,include/gm-dashboard,share/icons,share/applications}
 
-          # Binaries
           cp gm-dashboard gm-sign gm-config gm-viewer "$PKG/bin/"
-
-          # Plugins (pre-signed: .so + .so.sig + .html)
           cp plugins/*.so plugins/*.so.sig plugins/*.html "$PKG/lib/gm-dashboard/"
-
-          # Shared data + marketplace public key
           cp base.html "$PKG/share/gm-dashboard/"
           cp gm-plugin.h "$PKG/include/gm-dashboard/"
           cp config.example "$PKG/share/gm-dashboard/"
@@ -77,12 +79,8 @@ jobs:
           cp gm-dashboard.desktop "$PKG/share/applications/"
           cp gm-dashboard.svg "$PKG/share/icons/"
           cp gm-dashboard.png "$PKG/share/icons/"
-
-          # Docs
           cp README.md LICENSE "$PKG/"
           cp -r screenshots "$PKG/"
-
-          # Install script
           cp install.sh "$PKG/"
           chmod +x "$PKG/install.sh"
 
@@ -103,7 +101,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
+          name: ${{ env.VERSION }}
           generate_release_notes: true
+          make_latest: true
           files: |
             gm-dashboard-*-linux-x86_64.tar.gz
             SHA256SUMS.txt
