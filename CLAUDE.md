@@ -47,15 +47,15 @@ Every LCOV_EXCL marker MUST have a justification comment explaining why the code
 - Non-interactive testing: `GM_VAULT_PASSWORD` env var bypasses tty prompts in gm-config
 - GUI-safe testing: tests unset `DISPLAY` before any code path that would exec gm-viewer
 
-### Test Suites (9 suites, 207 tests)
+### Test Suites (9 suites, 241 tests)
 | Suite | File | Tests | What it covers |
 |-------|------|-------|----------------|
 | test_sign | tests/test_sign.cpp | 11 | Ed25519 keygen, sign, verify, CLI integration |
 | test_weather | tests/test_weather.cpp | 46 | ABI, WMO codes, wind dir, Open-Meteo/Nominatim/IP-geo parsing (cached fixtures), config, live geocode+fetch |
 | test_system | tests/test_system.cpp | 16 | Plugin ABI, /proc parsing, RAM, thermal |
-| test_github | tests/test_github.cpp | 13 | Plugin ABI, gh CLI fetch, JSON fields |
+| test_github | tests/test_github.cpp | 46 | Repo validation, config parsing (REPO=/SHOW_PROFILE), query builder, profile+tracked parsing (cached fixtures), ABI, live fetch with tracked repos |
 | test_dashboard | tests/test_dashboard.cpp | 16 | CLI flags, JSON output, HTML generation |
-| test_location | tests/test_location.cpp | 6 | Nominatim geocoding, wttr.in geo, city preservation |
+| test_location | tests/test_location.cpp | 5 | Nominatim geocoding, wttr.in geo, city preservation |
 | test_config | tests/test_config.cpp | 23 | gm-config CLI via QProcess (init, set, get, del, lock, unlock, migrate) |
 | test_sandbox | tests/test_sandbox.cpp | 41 | Landlock (all cap combos), seccomp, sig verify, loadPlugins (bad sig, bad .so, missing symbols, API mismatch, unsigned), sandboxedFetch, openViewer, greeting, config resolution |
 | test_vault | tests/test_vault.cpp | 37 | Vault internals (deriveKey, save/open, corruption, bad magic), cmdInit, cmdPasswd, cmdSet/Get/Del/List, cmdUnlock/Lock, cmdMigrate, error paths |
@@ -222,7 +222,7 @@ Compiler flags: `-O2 -march=znver4 -pipe -Wall -Wextra -std=c++17 -fPIC`
 | Plugin  | Order | Caps              | Data Source                    |
 |---------|-------|-------------------|--------------------------------|
 | weather | 10    | NETWORK (0x01)    | Open-Meteo API + Nominatim geocoding |
-| github  | 20    | EXEC\|NET (0x09)  | `gh api graphql` via popen     |
+| github  | 20    | EXEC\|NET (0x09)  | `gh api graphql` via popen — profile stats + tracked repo stats |
 | system  | 90    | PROC\|SHM (0x06)  | /proc/*, /dev/shm/argos-thermal|
 
 ## Known Quirks & Gotchas
@@ -233,6 +233,7 @@ Compiler flags: `-O2 -march=znver4 -pipe -Wall -Wextra -std=c++17 -fPIC`
 - **Nominatim geocoding**: Used when CITY= configured. 1 req/s policy, User-Agent required. Single call per session.
 - **IP geolocation (ip-api.com)**: HTTP-only fallback (not HTTPS). MITM could inject wrong coordinates — acceptable for dashboard. Body is LCOV_EXCL'd (unreliable in CI/testing).
 - **GitHub plugin uses popen**: Runs `gh api graphql` via shell. Needs GM_CAP_EXEC. Should be migrated to libcurl + PAT.
+- **GitHub repo tracker**: Config in `~/.config/gm-dashboard/github.conf` with `REPO=owner/name` lines. Profile stats + per-repo table (stars, forks, watchers, issues). Growth tracking (Δ24h, Δ7d) via JS localStorage in Qt WebEngine. `SHOW_PROFILE=false` hides profile stats. "+" button adds repos via QWebChannel bridge → writes github.conf → regenerates dashboard.
 - **Landlock + gh CLI**: gh binary needs `~/.config/gh/` for auth. GM_CAP_EXEC rules allow `~/.config` read.
 - **Thermal data**: System plugin reads `/dev/shm/argos-thermal` written by nvme-thermal-guard service.
 - **Temp thresholds in system.html**: NVMe yellow=70 red=85, DDR5 yellow=55 red=85, CPU yellow=75 red=85, GPU yellow=70 red=80
