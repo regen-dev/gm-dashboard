@@ -37,11 +37,25 @@ jobs:
       - name: Build
         run: make build QTDIR="$QTDIR" ARCH=x86-64-v3
 
-      - name: Run tests
+      - name: Restore signing key
         run: |
-          ./gm-sign keygen
-          make sign install QTDIR="$QTDIR" ARCH=x86-64-v3
-          make test QTDIR="$QTDIR" ARCH=x86-64-v3
+          mkdir -p "$HOME/.config/gm-dashboard"
+          echo "${{ secrets.MARKETPLACE_SEC }}" | base64 -d \
+            > "$HOME/.config/gm-dashboard/marketplace.sec"
+          chmod 600 "$HOME/.config/gm-dashboard/marketplace.sec"
+          cp marketplace.pub "$HOME/.config/gm-dashboard/marketplace.pub"
+
+      - name: Sign plugins and install
+        run: make sign install QTDIR="$QTDIR" ARCH=x86-64-v3
+
+      - name: Verify signatures
+        run: |
+          for so in plugins/*.so; do
+            ./gm-sign verify "$so"
+          done
+
+      - name: Run tests
+        run: make test QTDIR="$QTDIR" ARCH=x86-64-v3
 
       - name: Package release
         run: |
@@ -59,7 +73,7 @@ jobs:
           cp base.html "$PKG/share/gm-dashboard/"
           cp gm-plugin.h "$PKG/include/gm-dashboard/"
           cp config.example "$PKG/share/gm-dashboard/"
-          cp "$HOME/.config/gm-dashboard/marketplace.pub" "$PKG/share/gm-dashboard/"
+          cp marketplace.pub "$PKG/share/gm-dashboard/"
           cp gm-dashboard.desktop "$PKG/share/applications/"
           cp gm-dashboard.svg "$PKG/share/icons/"
           cp gm-dashboard.png "$PKG/share/icons/"
@@ -74,6 +88,12 @@ jobs:
 
           tar czf "${PKG}.tar.gz" "$PKG"
           sha256sum "${PKG}.tar.gz" > SHA256SUMS.txt
+
+      - name: Wipe signing key
+        if: always()
+        run: |
+          test -f "$HOME/.config/gm-dashboard/marketplace.sec" && \
+            shred -u "$HOME/.config/gm-dashboard/marketplace.sec" || true
 
       - name: Sign checksums (cosign keyless)
         uses: sigstore/cosign-installer@v3

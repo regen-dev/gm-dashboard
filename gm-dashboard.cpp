@@ -496,20 +496,19 @@ static void loadPlugins(std::vector<Plugin> &plugins,
 		QByteArray path = d.filePath(name).toLocal8Bit();
 
 		/* Verify signature BEFORE dlopen (constructors run at dlopen) */
-		if (pk) {
-			int sig = verifyPluginSig(path.constData(), pk);
-			if (sig == 0) {
-				fprintf(stderr, "[gm] %s: INVALID signature — REJECTED\n",
-					qPrintable(name));
-				continue;
-			}
-			if (sig == -1)
-				fprintf(stderr, "[gm] %s: unsigned (no .sig)\n",
-					qPrintable(name));
-			else
-				fprintf(stderr, "[gm] %s: signature verified\n",
-					qPrintable(name));
+		if (!pk) {
+			fprintf(stderr, "[gm] %s: REJECTED — no marketplace key\n",
+				qPrintable(name));
+			continue;
 		}
+		int sigResult = verifyPluginSig(path.constData(), pk);
+		if (sigResult != 1) {
+			fprintf(stderr, "[gm] %s: %s — REJECTED\n",
+				qPrintable(name),
+				sigResult == 0 ? "INVALID signature" : "unsigned (no .sig)");
+			continue;
+		}
+		fprintf(stderr, "[gm] %s: signature verified\n", qPrintable(name));
 
 		void *h = dlopen(path.constData(), RTLD_LAZY);
 		if (!h) {
@@ -612,7 +611,7 @@ int main(int argc, char **argv)
 	} // LCOV_EXCL_STOP
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 
-	/* Load marketplace public key */
+	/* Load marketplace public key — REQUIRED for plugin loading */
 	QByteArray pkData = readBinary(
 		QDir::homePath() + "/.config/gm-dashboard/marketplace.pub");
 	const unsigned char *marketplacePk = nullptr;
@@ -620,7 +619,8 @@ int main(int argc, char **argv)
 		marketplacePk = reinterpret_cast<const unsigned char *>(pkData.constData());
 		fprintf(stderr, "[gm] Marketplace key loaded\n");
 	} else {
-		fprintf(stderr, "[gm] No marketplace key — sig checks disabled\n"); // LCOV_EXCL_LINE
+		fprintf(stderr, "[gm] ERROR: No marketplace key — cannot verify plugins\n");
+		fprintf(stderr, "[gm] Run: gm-sign keygen (dev) or reinstall (release)\n");
 	}
 
 	/* Load plugins (metadata only — init+fetch run sandboxed) */

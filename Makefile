@@ -93,6 +93,8 @@ install: build
 	done
 	install -dm700 $(CFGDIR)
 	@test -f $(CFGDIR)/config || install -m600 config.example $(CFGDIR)/config
+	@test -f $(CFGDIR)/marketplace.pub || \
+		(test -f marketplace.pub && install -m644 marketplace.pub $(CFGDIR)/marketplace.pub) || true
 	install -Dm644 gm-dashboard.svg $(PREFIX)/share/icons/hicolor/scalable/apps/gm-dashboard.svg
 	install -Dm644 gm-dashboard.png $(PREFIX)/share/icons/hicolor/256x256/apps/gm-dashboard.png
 	install -Dm644 gm-dashboard.desktop $(PREFIX)/share/applications/gm-dashboard.desktop

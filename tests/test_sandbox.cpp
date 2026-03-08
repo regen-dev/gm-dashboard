@@ -17,6 +17,21 @@ class TestSandbox : public QObject {
 
 private:
     QString realHome;
+    unsigned char testPk[crypto_sign_PUBLICKEYBYTES];
+    unsigned char testSk[crypto_sign_SECRETKEYBYTES];
+
+    /* Sign a .so file with the test keypair, creating .so.sig alongside it */
+    void signWithTestKey(const QString &soPath) {
+        QByteArray soData = readBinary(soPath);
+        unsigned char sig[crypto_sign_BYTES];
+        crypto_sign_detached(sig, nullptr,
+            reinterpret_cast<const unsigned char *>(soData.constData()),
+            soData.size(), testSk);
+        QFile f(soPath + ".sig");
+        f.open(QIODevice::WriteOnly);
+        f.write(reinterpret_cast<const char *>(sig), sizeof(sig));
+        f.close();
+    }
 
 private slots:
 
@@ -24,6 +39,8 @@ private slots:
         QVERIFY(sodium_init() >= 0);
         curl_global_init(CURL_GLOBAL_DEFAULT);
         realHome = qgetenv("HOME");
+        /* Generate a test-only keypair for loadPlugins tests */
+        crypto_sign_keypair(testPk, testSk);
     }
 
     /* ── Landlock (in-process, restrict_self skipped under GM_TESTING) ── */
@@ -303,13 +320,12 @@ private slots:
         qputenv("HOME", oldHome.toLocal8Bit());
     }
 
-    void testLoadPluginsNoPk() {
-        /* Restore real HOME so loadPlugins finds the installed plugins */
+    void testLoadPluginsNoPkRejectsAll() {
+        /* Without a public key, ALL plugins must be rejected */
         qputenv("HOME", realHome.toLocal8Bit());
         std::vector<Plugin> plugins;
         loadPlugins(plugins, nullptr);
-        QVERIFY(!plugins.empty());
-        for (auto &p : plugins) dlclose(p.handle);
+        QVERIFY(plugins.empty());
     }
 
     void testLoadPluginsBadSo() {
@@ -322,14 +338,16 @@ private slots:
         QString plugDir = tmp.path() + "/.local/lib/gm-dashboard";
         QDir().mkpath(plugDir);
 
-        QFile bad(plugDir + "/bad.so");
+        QString soPath = plugDir + "/bad.so";
+        QFile bad(soPath);
         QVERIFY(bad.open(QIODevice::WriteOnly));
         bad.write("not an elf file");
         bad.close();
+        signWithTestKey(soPath);
 
         std::vector<Plugin> plugins;
-        loadPlugins(plugins, nullptr);
-        QVERIFY(plugins.empty()); /* dlopen fails */
+        loadPlugins(plugins, testPk);
+        QVERIFY(plugins.empty()); /* sig valid but dlopen fails */
 
         qputenv("HOME", oldHome.toLocal8Bit());
     }
@@ -343,12 +361,13 @@ private slots:
         QString plugDir = tmp.path() + "/.local/lib/gm-dashboard";
         QDir().mkpath(plugDir);
 
-        /* Copy the stub_nosym.so */
         QString srcDir = QCoreApplication::applicationDirPath();
-        QFile::copy(srcDir + "/stub_nosym.so", plugDir + "/stub_nosym.so");
+        QString soPath = plugDir + "/stub_nosym.so";
+        QFile::copy(srcDir + "/stub_nosym.so", soPath);
+        signWithTestKey(soPath);
 
         std::vector<Plugin> plugins;
-        loadPlugins(plugins, nullptr);
+        loadPlugins(plugins, testPk);
         QVERIFY(plugins.empty());
 
         qputenv("HOME", realHome.toLocal8Bit());
@@ -364,17 +383,19 @@ private slots:
         QDir().mkpath(plugDir);
 
         QString srcDir = QCoreApplication::applicationDirPath();
-        QFile::copy(srcDir + "/stub_badver.so", plugDir + "/stub_badver.so");
+        QString soPath = plugDir + "/stub_badver.so";
+        QFile::copy(srcDir + "/stub_badver.so", soPath);
+        signWithTestKey(soPath);
 
         std::vector<Plugin> plugins;
-        loadPlugins(plugins, nullptr);
+        loadPlugins(plugins, testPk);
         QVERIFY(plugins.empty());
 
         qputenv("HOME", realHome.toLocal8Bit());
     }
 
-    void testLoadPluginsUnsignedWarning() {
-        /* .so with valid symbols but no .sig file — should log "unsigned" */
+    void testLoadPluginsUnsignedRejected() {
+        /* .so with valid symbols but no .sig file — MUST be rejected */
         QTemporaryDir tmp;
         QVERIFY(tmp.isValid());
         qputenv("HOME", tmp.path().toLocal8Bit());
@@ -394,9 +415,8 @@ private slots:
         if (pkData.size() == crypto_sign_PUBLICKEYBYTES) {
             loadPlugins(plugins,
                 reinterpret_cast<const unsigned char *>(pkData.constData()));
-            /* Should load with unsigned warning (sig == -1) */
-            QVERIFY(!plugins.empty());
-            for (auto &p : plugins) dlclose(p.handle);
+            /* Unsigned plugins MUST be rejected */
+            QVERIFY(plugins.empty());
         }
 
         qputenv("HOME", realHome.toLocal8Bit());
