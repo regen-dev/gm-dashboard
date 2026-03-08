@@ -23,10 +23,13 @@ install -Dm644 "$SCRIPT_DIR/include/gm-dashboard/gm-plugin.h" \
 install -Dm644 "$SCRIPT_DIR/share/gm-dashboard/base.html" \
   "$PREFIX/share/gm-dashboard/base.html"
 
-# Plugins
+# Plugins (pre-signed: .so + .so.sig + .html)
 install -dm755 "$PREFIX/lib/gm-dashboard"
 for f in "$SCRIPT_DIR"/lib/gm-dashboard/*.so; do
   [ -f "$f" ] && install -m755 "$f" "$PREFIX/lib/gm-dashboard/"
+done
+for f in "$SCRIPT_DIR"/lib/gm-dashboard/*.so.sig; do
+  [ -f "$f" ] && install -m644 "$f" "$PREFIX/lib/gm-dashboard/"
 done
 for f in "$SCRIPT_DIR"/lib/gm-dashboard/*.html; do
   [ -f "$f" ] && install -m644 "$f" "$PREFIX/lib/gm-dashboard/"
@@ -48,17 +51,8 @@ if [ ! -f "$CFGDIR/config" ]; then
   install -m600 "$SCRIPT_DIR/share/gm-dashboard/config.example" "$CFGDIR/config"
 fi
 
-# Generate signing keypair if missing
-if [ ! -f "$CFGDIR/marketplace.pub" ]; then
-  echo "Generating Ed25519 signing keypair..."
-  "$PREFIX/bin/gm-sign" keygen
-fi
-
-# Sign plugins
-echo "Signing plugins..."
-for so in "$PREFIX"/lib/gm-dashboard/*.so; do
-  "$PREFIX/bin/gm-sign" sign "$so"
-done
+# Marketplace public key (used to verify plugin signatures)
+install -m644 "$SCRIPT_DIR/share/gm-dashboard/marketplace.pub" "$CFGDIR/marketplace.pub"
 
 echo ""
 echo "Done! Make sure ~/.local/bin is in your PATH, then run:"

@@ -52,13 +52,14 @@ jobs:
           # Binaries
           cp gm-dashboard gm-sign gm-config gm-viewer "$PKG/bin/"
 
-          # Plugins
-          cp plugins/*.so plugins/*.html "$PKG/lib/gm-dashboard/"
+          # Plugins (pre-signed: .so + .so.sig + .html)
+          cp plugins/*.so plugins/*.so.sig plugins/*.html "$PKG/lib/gm-dashboard/"
 
-          # Shared data
+          # Shared data + marketplace public key
           cp base.html "$PKG/share/gm-dashboard/"
           cp gm-plugin.h "$PKG/include/gm-dashboard/"
           cp config.example "$PKG/share/gm-dashboard/"
+          cp "$HOME/.config/gm-dashboard/marketplace.pub" "$PKG/share/gm-dashboard/"
           cp gm-dashboard.desktop "$PKG/share/applications/"
           cp gm-dashboard.svg "$PKG/share/icons/"
           cp gm-dashboard.png "$PKG/share/icons/"
