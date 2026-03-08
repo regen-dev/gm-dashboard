@@ -86,6 +86,87 @@ public slots:
         }
     }
 
+    /* ── Config helpers: append/remove lines in plugin .conf files ── */
+
+    void appendConfig(const QString &pluginId, const QString &line) {
+        if (pluginId.contains('/') || pluginId.contains("..")) return;
+        QString path = m_cfgDir + "/" + pluginId + ".conf";
+
+        /* Read existing to check for duplicates */
+        QFile f(path);
+        QByteArray existing;
+        if (f.open(QIODevice::ReadOnly)) {
+            existing = f.readAll();
+            f.close();
+        }
+        if (existing.contains((line + "\n").toUtf8()) ||
+            existing.trimmed().endsWith(line.toUtf8()))
+            return;
+
+        /* Append */
+        if (f.open(QIODevice::Append | QIODevice::Text)) {
+            if (!existing.isEmpty() && !existing.endsWith('\n'))
+                f.write("\n");
+            f.write((line + "\n").toUtf8());
+            f.close();
+        }
+        regenerateAndReload();
+    }
+
+    void removeConfigLine(const QString &pluginId, const QString &line) {
+        if (pluginId.contains('/') || pluginId.contains("..")) return;
+        QString path = m_cfgDir + "/" + pluginId + ".conf";
+
+        QFile f(path);
+        if (!f.open(QIODevice::ReadOnly)) return;
+        QStringList lines;
+        while (!f.atEnd()) {
+            QString l = QString::fromUtf8(f.readLine()).trimmed();
+            if (l != line)
+                lines.append(l);
+        }
+        f.close();
+
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            for (const auto &l : lines)
+                f.write((l + "\n").toUtf8());
+            f.close();
+        }
+        regenerateAndReload();
+    }
+
+    void setConfigValue(const QString &pluginId, const QString &key, const QString &value) {
+        if (pluginId.contains('/') || pluginId.contains("..")) return;
+        QString path = m_cfgDir + "/" + pluginId + ".conf";
+
+        QFile f(path);
+        QStringList lines;
+        bool found = false;
+
+        if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            while (!f.atEnd()) {
+                QString line = QString::fromUtf8(f.readLine()).trimmed();
+                if (line.startsWith(key + "=")) {
+                    lines.append(key + "=" + value);
+                    found = true;
+                } else {
+                    lines.append(line);
+                }
+            }
+            f.close();
+        }
+
+        if (!found)
+            lines.append(key + "=" + value);
+
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            for (const auto &l : lines)
+                f.write((l + "\n").toUtf8());
+            f.close();
+        }
+        regenerateAndReload();
+    }
+
     /* ── City search dialog: called from weather card JS ── */
     void requestLocation() {
         emit locationStatus("Opening city search...");
