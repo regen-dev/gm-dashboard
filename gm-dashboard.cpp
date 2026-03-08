@@ -175,7 +175,9 @@ static int applyLandlock(unsigned caps, const char *pluginDir,
 
 	if (abi >= 2) fsAccess |= LANDLOCK_ACCESS_FS_REFER;
 	if (abi >= 3) fsAccess |= LANDLOCK_ACCESS_FS_TRUNCATE;
+#ifdef LANDLOCK_ACCESS_FS_IOCTL_DEV
 	if (abi >= 5) fsAccess |= LANDLOCK_ACCESS_FS_IOCTL_DEV;
+#endif
 
 	/* Network: restrict if plugin doesn't need it */
 	__u64 netAccess = 0;
