@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=GM Dashboard
+Comment=Good Morning sci-fi dashboard with weather, GitHub, and system stats
+Exec=gm-dashboard
+Icon=gm-dashboard
+Terminal=false
+Categories=Utility;Monitor;
+Keywords=Dashboard;Weather;System;Monitor;
+StartupWMClass=gm-dashboard
+StartupNotify=false

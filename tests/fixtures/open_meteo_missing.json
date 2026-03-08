@@ -1,0 +1,45 @@
+{
+  "latitude": -15.875,
+  "longitude": -48.0,
+  "generationtime_ms": 0.5,
+  "utc_offset_seconds": -10800,
+  "timezone": "America/Sao_Paulo",
+  "timezone_abbreviation": "GMT-3",
+  "elevation": 1158.0,
+  "current_units": {
+    "time": "iso8601",
+    "interval": "seconds",
+    "temperature_2m": "°C",
+    "relative_humidity_2m": "%",
+    "apparent_temperature": "°C",
+    "weather_code": "wmo code",
+    "wind_speed_10m": "km/h",
+    "wind_direction_10m": "°",
+    "surface_pressure": "hPa",
+    "uv_index": "",
+    "visibility": "m",
+    "is_day": ""
+  },
+  "current": {
+    "time": "2026-03-08T08:30",
+    "interval": 900,
+    "temperature_2m": 21.0,
+    "relative_humidity_2m": 83,
+    "apparent_temperature": 22.8,
+    "weather_code": 3
+  },
+  "daily_units": {
+    "time": "iso8601",
+    "temperature_2m_max": "°C",
+    "temperature_2m_min": "°C",
+    "sunrise": "iso8601",
+    "sunset": "iso8601"
+  },
+  "daily": {
+    "time": ["2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14"],
+    "temperature_2m_max": [28.1, 26.5, 28.5, 27.2, 26.9, 25.0, 24.1],
+    "temperature_2m_min": [19.4, 19.3, 19.0, 19.0, 19.4, 19.0, 19.5],
+    "sunrise": ["2026-03-08T06:13", "2026-03-09T06:14", "2026-03-10T06:14", "2026-03-11T06:14", "2026-03-12T06:14", "2026-03-13T06:14", "2026-03-14T06:14"],
+    "sunset": ["2026-03-08T18:31", "2026-03-09T18:30", "2026-03-10T18:30", "2026-03-11T18:29", "2026-03-12T18:28", "2026-03-13T18:27", "2026-03-14T18:27"]
+  }
+}

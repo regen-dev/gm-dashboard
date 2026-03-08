@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d1b2a"/>
+      <stop offset="100%" stop-color="#06090f"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#00b8d4" stop-opacity="0.7"/>
+    </linearGradient>
+    <filter id="cyanGlow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="256" height="256" rx="42" fill="url(#bg)"/>
+
+  <!-- Subtle border -->
+  <rect x="1" y="1" width="254" height="254" rx="41" fill="none"
+        stroke="#00e5ff" stroke-opacity="0.15" stroke-width="1.5"/>
+
+  <!-- Grid pattern (subtle) -->
+  <g stroke="#00e5ff" stroke-opacity="0.04" stroke-width="0.5">
+    <line x1="64" y1="20" x2="64" y2="236"/>
+    <line x1="128" y1="20" x2="128" y2="236"/>
+    <line x1="192" y1="20" x2="192" y2="236"/>
+    <line x1="20" y1="64" x2="236" y2="64"/>
+    <line x1="20" y1="128" x2="236" y2="128"/>
+    <line x1="20" y1="192" x2="236" y2="192"/>
+  </g>
+
+  <!-- Corner brackets -->
+  <g stroke="#00e5ff" stroke-opacity="0.3" stroke-width="2" fill="none">
+    <polyline points="30,55 30,30 55,30"/>
+    <polyline points="201,30 226,30 226,55"/>
+    <polyline points="226,201 226,226 201,226"/>
+    <polyline points="55,226 30,226 30,201"/>
+  </g>
+
+  <!-- Central diamond (◈ motif from the dashboard) -->
+  <g filter="url(#softGlow)">
+    <polygon points="128,58 178,128 128,198 78,128"
+             fill="none" stroke="url(#glow)" stroke-width="2.5" stroke-opacity="0.5"/>
+  </g>
+  <polygon points="128,68 170,128 128,188 86,128"
+           fill="none" stroke="#00e5ff" stroke-width="1.5" stroke-opacity="0.25"/>
+
+  <!-- Inner diamond -->
+  <polygon points="128,88 152,128 128,168 104,128"
+           fill="#00e5ff" fill-opacity="0.06"
+           stroke="#00e5ff" stroke-width="1" stroke-opacity="0.4"/>
+
+  <!-- GM text -->
+  <g filter="url(#cyanGlow)">
+    <text x="128" y="137" text-anchor="middle" font-family="'Share Tech Mono','Courier New',monospace"
+          font-size="36" font-weight="bold" letter-spacing="6" fill="#00e5ff">GM</text>
+  </g>
+
+  <!-- Small accent lines (circuit traces) -->
+  <g stroke="#00e5ff" stroke-opacity="0.2" stroke-width="1">
+    <line x1="55" y1="128" x2="78" y2="128"/>
+    <line x1="178" y1="128" x2="201" y2="128"/>
+    <line x1="128" y1="55" x2="128" y2="68"/>
+    <line x1="128" y1="188" x2="128" y2="201"/>
+  </g>
+
+  <!-- Small dots at circuit intersections -->
+  <g fill="#00e5ff" fill-opacity="0.4">
+    <circle cx="55" cy="128" r="2"/>
+    <circle cx="201" cy="128" r="2"/>
+    <circle cx="128" cy="55" r="2"/>
+    <circle cx="128" cy="201" r="2"/>
+  </g>
+
+  <!-- Scan line effect (subtle) -->
+  <rect x="30" y="126" width="196" height="1" fill="#00e5ff" opacity="0.08"/>
+</svg>

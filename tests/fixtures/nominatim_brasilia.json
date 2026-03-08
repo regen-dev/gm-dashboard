@@ -1,0 +1,23 @@
+[
+  {
+    "place_id": 14876140,
+    "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "node",
+    "osm_id": 34567423,
+    "lat": "-15.7939869",
+    "lon": "-47.8828000",
+    "class": "place",
+    "type": "city",
+    "place_rank": 15,
+    "importance": 0.6841690826039725,
+    "addresstype": "city",
+    "name": "Brasília",
+    "display_name": "Brasília, Plano Piloto, Região Geográfica Imediata do Distrito Federal, Região Integrada de Desenvolvimento do Distrito Federal e Entorno, Região Geográfica Intermediária do Distrito Federal, Distrito Federal, Região Centro-Oeste, 70391-900, Brasil",
+    "boundingbox": [
+      "-15.9539869",
+      "-15.6339869",
+      "-48.0428000",
+      "-47.7228000"
+    ]
+  }
+]

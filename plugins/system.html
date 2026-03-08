@@ -1,0 +1,22 @@
+<script>
+(function() {
+  var d = (GM.plugins || {}).system;
+  var el = document.getElementById('p-system');
+  if (!d) { el.innerHTML = '<div class="ph"><div class="ico">\u2298</div><p>SYSTEM OFFLINE</p></div>'; return; }
+  function tc(t,w,c) { return t >= c ? 'rd' : t >= w ? 'am' : 'gr'; }
+  var nvme = (d.nvme_temps || []).map(function(t,i) {
+    return R('NVMe' + i, t + '\u00B0C', tc(t, 70, 85));
+  }).join('');
+  var pct = d.ram_total_gb > 0 ? ((d.ram_used_gb / d.ram_total_gb) * 100).toFixed(0) : 0;
+  el.innerHTML =
+    R('CPU', d.cpu_temp + '\u00B0C', tc(d.cpu_temp, 75, 85)) +
+    R('GPU', d.gpu_temp + '\u00B0C', tc(d.gpu_temp, 70, 80)) +
+    R('DDR5', d.ddr_temp + '\u00B0C', tc(d.ddr_temp, 55, 85)) +
+    nvme +
+    '<div class="sep"></div>' +
+    R('RAM', d.ram_used_gb.toFixed(1) + ' / ' + d.ram_total_gb.toFixed(0) + ' GB') +
+    '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+    R('Uptime', d.uptime) +
+    R('Load', d.load);
+})();
+</script>

@@ -1,0 +1,3 @@
+# GM Dashboard - Global Configuration
+# Display name for greeting (leave empty to auto-detect from plugins)
+NAME=

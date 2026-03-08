@@ -1,0 +1,26 @@
+{
+  "data": {
+    "viewer": {
+      "login": "testuser",
+      "name": "Test User",
+      "followers": {"totalCount": 42},
+      "following": {"totalCount": 15},
+      "repositories": {
+        "totalCount": 10,
+        "nodes": []
+      },
+      "contributionsCollection": {
+        "contributionCalendar": {"totalContributions": 500}
+      }
+    },
+    "r0": {
+      "nameWithOwner": "real-owner/real-repo",
+      "stargazerCount": 500,
+      "forkCount": 20,
+      "watchers": {"totalCount": 50},
+      "issues": {"totalCount": 10},
+      "description": "A real repository"
+    },
+    "r1": null
+  }
+}
