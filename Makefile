@@ -1,6 +1,6 @@
-CXX      ?= g++
-ARCH     ?= native
-CXXFLAGS ?= -O2 -march=$(ARCH) -pipe -Wall -Wextra -std=c++17 -fPIC
+CXX       ?= g++
+ARCH      ?= native
+CXXFLAGS  := -O2 -march=$(ARCH) -pipe -Wall -Wextra -std=c++17 -fPIC
 PREFIX   ?= $(HOME)/.local
 PLUGDIR   = $(PREFIX)/lib/gm-dashboard
 SHAREDIR  = $(PREFIX)/share/gm-dashboard

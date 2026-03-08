@@ -656,17 +656,7 @@ int main(int argc, char **argv)
 	strftime(tzbuf, sizeof(tzbuf), "%Z", tm);
 	root["timezone"] = tzbuf;
 
-	/* Name: config > plugin "name" field > nothing */
-	if (name.isEmpty()) {
-		for (auto &p : plugins) {
-			if (p.json.isEmpty()) continue;
-			QJsonDocument pd = QJsonDocument::fromJson(p.json);
-			if (pd.isObject() && pd.object().contains("name")) {
-				name = pd["name"].toString();
-				break;
-			}
-		}
-	}
+	/* Name: only from explicit NAME= in config (no auto-detect) */
 	if (!name.isEmpty())
 		root["name"] = name;
 

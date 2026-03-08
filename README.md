@@ -2,27 +2,9 @@
 
 A sci-fi "Good Morning" dashboard for Linux desktops. Written in C++17 with Qt6 and a plugin architecture — each card is an independent `.so` loaded via `dlopen()`, running in a sandboxed child process with Landlock + seccomp.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                  GOOD AFTERNOON, RΞGΞN                          │
-│              SATURDAY, MARCH 08, 2026                           │
-│                    15:30:42 -03                                  │
-│─────────────────────────────────────────────────────────────────│
-│  ◈ WEATHER      │  ◈ GITHUB         │  ◈ SYSTEM                │
-│                  │                    │                          │
-│      ⛅          │  Repos       5     │  CPU    52°C             │
-│    26°C          │  Stars       0     │  GPU    34°C             │
-│  Partly cloudy   │  Forks       0     │  DDR5   46°C            │
-│   Goiania        │  Followers   6     │  NVMe0  44°C            │
-│                  │  Following   3     │  NVMe1  39°C            │
-│  Humidity  70%   │  ──────────────    │  NVMe2  39°C            │
-│  Feels     29°C  │  Contributions 13  │  ──────────────         │
-│  Wind      4km/h │                    │  RAM 24/123 GB          │
-│                  │                    │  ████░░░░░░░░░░  19%    │
-│                  │                    │  Uptime  0d 7h 58m      │
-│                  │                    │  Load  1.19/0.90/0.74   │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Weather | GitHub | System |
+|---------|--------|--------|
+| ![Weather](screenshots/screenshot1.png) | ![GitHub](screenshots/screenshot.png) | ![System](screenshots/screenshot3.png) |
 
 Rendered in a custom frameless Qt6 WebEngine window with native system move/resize, position memory, and a QWebChannel bridge for the title bar.
 
@@ -227,7 +209,7 @@ The dashboard auto-detects: checks `/dev/shm/gm-cfg/` first, falls back to plain
 
 Global config: `~/.config/gm-dashboard/config`
 ```
-NAME=YourName
+NAME=YourName    # Optional — only shown if explicitly set
 ```
 
 Per-plugin config: `~/.config/gm-dashboard/<id>.conf`
