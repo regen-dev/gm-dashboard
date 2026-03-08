@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libsodium-dev libseccomp-dev libcurl4-openssl-dev
+
+      - name: Install Qt 6.10
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.10.2'
+          modules: 'qtwebengine qtwebchannel qtpositioning'
+          cache: true
+          aqtversion: '==3.3.*'
+
+      - name: Set QTDIR
+        run: |
+          QTDIR=$(qmake6 -query QT_INSTALL_PREFIX 2>/dev/null || qmake -query QT_INSTALL_PREFIX)
+          echo "QTDIR=$QTDIR" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: make build QTDIR="$QTDIR" ARCH=x86-64-v3
+
+      - name: Run tests
+        run: |
+          ./gm-sign keygen
+          make sign install QTDIR="$QTDIR" ARCH=x86-64-v3
+          make test QTDIR="$QTDIR" ARCH=x86-64-v3
+
+      - name: Package release
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          PKG="gm-dashboard-${VERSION}-linux-x86_64"
+          mkdir -p "$PKG"/{bin,lib/gm-dashboard,share/gm-dashboard,include/gm-dashboard,share/icons,share/applications}
+
+          # Binaries
+          cp gm-dashboard gm-sign gm-config gm-viewer "$PKG/bin/"
+
+          # Plugins
+          cp plugins/*.so plugins/*.html "$PKG/lib/gm-dashboard/"
+
+          # Shared data
+          cp base.html "$PKG/share/gm-dashboard/"
+          cp gm-plugin.h "$PKG/include/gm-dashboard/"
+          cp config.example "$PKG/share/gm-dashboard/"
+          cp gm-dashboard.desktop "$PKG/share/applications/"
+          cp gm-dashboard.svg "$PKG/share/icons/"
+          cp gm-dashboard.png "$PKG/share/icons/"
+
+          # Docs
+          cp README.md LICENSE "$PKG/"
+          cp -r screenshots "$PKG/"
+
+          # Install script
+          cp install.sh "$PKG/"
+          chmod +x "$PKG/install.sh"
+
+          tar czf "${PKG}.tar.gz" "$PKG"
+          sha256sum "${PKG}.tar.gz" > SHA256SUMS.txt
+
+      - name: Sign checksums (cosign keyless)
+        uses: sigstore/cosign-installer@v3
+      - name: Cosign sign
+        run: cosign sign-blob --yes SHA256SUMS.txt --bundle SHA256SUMS.txt.cosign.bundle
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            gm-dashboard-*-linux-x86_64.tar.gz
+            SHA256SUMS.txt
+            SHA256SUMS.txt.cosign.bundle

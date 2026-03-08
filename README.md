@@ -18,12 +18,30 @@ Rendered in a custom frameless Qt6 WebEngine window with native system move/resi
 - **Encrypted config** — Argon2id + XSalsa20-Poly1305 vault for sensitive settings
 - **Custom viewer** — frameless Qt6 WebEngine window with drag/resize/minimize via QWebChannel
 
-## Quick Start
+## Installation
 
-### Dependencies
+### Option A: Pre-built release (quickest)
 
 ```bash
-# Ubuntu/Debian
+# Download latest release
+curl -LO https://github.com/regen-dev/gm-dashboard/releases/latest/download/gm-dashboard-linux-x86_64.tar.gz
+
+# Verify checksum
+curl -LO https://github.com/regen-dev/gm-dashboard/releases/latest/download/SHA256SUMS.txt
+sha256sum -c SHA256SUMS.txt
+
+# Extract and install to ~/.local/
+tar xzf gm-dashboard-*-linux-x86_64.tar.gz
+cd gm-dashboard-*/
+./install.sh
+```
+
+> **Note:** Pre-built binaries require Qt 6.10+ runtime libraries on your system. If you don't have them, use Option B.
+
+### Option B: Build from source
+
+```bash
+# Dependencies (Ubuntu/Debian)
 sudo apt install g++ libsodium-dev libseccomp-dev libcurl4-openssl-dev
 
 # Qt6 (one of):
@@ -31,16 +49,13 @@ sudo apt install g++ libsodium-dev libseccomp-dev libcurl4-openssl-dev
 sudo apt install qt6-base-dev qt6-webengine-dev qt6-tools-dev qt6-webchannel-dev qt6-positioning-dev
 #   Option B: Qt online installer (https://www.qt.io/download-qt-installer)
 #   Installs to ~/Qt/<version>/gcc_64 — the Makefile default
-```
 
-### Build & Run
-
-```bash
-git clone https://github.com/user/gm-dashboard.git
+# Clone, build, run
+git clone https://github.com/regen-dev/gm-dashboard.git
 cd gm-dashboard
 
 # If using system Qt6, set QTDIR:
-# export QTDIR=/usr/lib/x86_64-linux-gnu/qt6  # or wherever qmake6 lives
+# export QTDIR=/usr/lib/x86_64-linux-gnu/qt6
 
 # First time: generate signing keypair
 make build
