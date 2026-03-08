@@ -158,8 +158,8 @@ private slots:
         QVERIFY2(used >= 0 && used <= total,
             qPrintable(QString("RAM used %1 > total %2").arg(used).arg(total)));
 
-        /* This machine has ~123 GB RAM */
-        QVERIFY2(total > 50, "Expected 50+ GB RAM on this system");
+        /* Sanity check — any real machine has at least 1 GB */
+        QVERIFY2(total >= 1, qPrintable(QString("RAM total too low: %1 GB").arg(total)));
         cleanFn();
     }
 
