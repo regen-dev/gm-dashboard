@@ -1,0 +1,47 @@
+# Build artifacts
+gm-dashboard
+gm-sign
+gm-config
+gm-viewer
+gm-viewer.moc
+*.o
+*.a
+
+# Plugins (compiled)
+plugins/*.so
+plugins/*.so.sig
+
+# Tests (compiled)
+tests/test_sign
+tests/test_weather
+tests/test_system
+tests/test_github
+tests/test_dashboard
+tests/test_location
+tests/test_config
+tests/test_sandbox
+tests/test_vault
+tests/*.moc
+tests/stub_*.so
+
+# Coverage
+*.gcda
+*.gcno
+*.gcov
+coverage.info
+coverage-report/
+
+# Qt moc
+moc_*.cpp
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+compile_commands.json
+
+# Config (may contain secrets)
+.env
+.env.local

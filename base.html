@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GM // DASHBOARD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #06090f;
+  --surface: rgba(10, 22, 40, 0.88);
+  --cyan: #00e5ff;
+  --green: #39ff14;
+  --amber: #ffc107;
+  --red: #ff1744;
+  --text: #b0c4d8;
+  --dim: #3a5068;
+  --border: rgba(0, 229, 255, 0.15);
+  --glow: 0 0 15px rgba(0, 229, 255, 0.18);
+  --font: 'Share Tech Mono', 'JetBrains Mono', 'Fira Code', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); overflow: hidden; }
+
+/* Window border glow (no OS decorations) */
+body::before {
+  content: ''; position: fixed; inset: 0;
+  border: 1px solid var(--border);
+  box-shadow: inset 0 0 30px rgba(0,229,255,0.03);
+  pointer-events: none; z-index: 1001;
+}
+
+/* Custom title bar */
+.wm-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 32px; z-index: 1000;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 6px 0 12px;
+  background: linear-gradient(180deg, rgba(10,22,40,0.97) 0%, rgba(6,9,15,0.92) 100%);
+  border-bottom: 1px solid var(--border);
+  user-select: none; cursor: default;
+}
+.wm-left { display: flex; align-items: center; gap: 14px; pointer-events: none; }
+.wm-title {
+  font-size: 0.6rem; letter-spacing: 0.3rem; color: var(--dim);
+  text-transform: uppercase;
+}
+.wm-title span { color: var(--cyan); opacity: 0.4; }
+.wm-greeting { font-size: 0.65rem; letter-spacing: 0.2rem; color: var(--cyan); opacity: 0.8; }
+.wm-date { font-size: 0.55rem; letter-spacing: 0.15rem; color: var(--dim); }
+.wm-clock { font-size: 0.65rem; letter-spacing: 0.15rem; color: var(--cyan); opacity: 0.5; }
+.wm-controls { display: flex; gap: 8px; align-items: center; }
+.wm-btn {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 1.5px solid var(--dim); background: transparent;
+  cursor: pointer; transition: all 0.2s; opacity: 0.5;
+}
+.wm-btn:hover { opacity: 1; }
+.wm-btn.wm-close:hover { border-color: var(--red); background: rgba(255,23,68,0.3); box-shadow: 0 0 6px rgba(255,23,68,0.4); }
+.wm-btn.wm-min:hover { border-color: var(--amber); background: rgba(255,193,7,0.2); }
+
+/* Resize handles */
+.wm-rz { position: fixed; z-index: 1002; }
+.wm-rz-n  { top: 0; left: 10px; right: 10px; height: 4px; cursor: n-resize; }
+.wm-rz-s  { bottom: 0; left: 10px; right: 10px; height: 4px; cursor: s-resize; }
+.wm-rz-w  { left: 0; top: 10px; bottom: 10px; width: 4px; cursor: w-resize; }
+.wm-rz-e  { right: 0; top: 10px; bottom: 10px; width: 4px; cursor: e-resize; }
+.wm-rz-nw { top: 0; left: 0; width: 10px; height: 10px; cursor: nw-resize; }
+.wm-rz-ne { top: 0; right: 0; width: 10px; height: 10px; cursor: ne-resize; }
+.wm-rz-sw { bottom: 0; left: 0; width: 10px; height: 10px; cursor: sw-resize; }
+.wm-rz-se { bottom: 0; right: 0; width: 10px; height: 10px; cursor: se-resize; }
+
+/* Background layers */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+.vignette {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.65) 100%);
+}
+.scanlines {
+  position: fixed; inset: 0; z-index: 998; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 4px);
+}
+.scan-beam {
+  position: fixed; left: 0; right: 0; height: 2px; z-index: 997; pointer-events: none;
+  background: linear-gradient(90deg, transparent 10%, var(--cyan) 50%, transparent 90%);
+  opacity: 0.06; animation: scan 8s linear infinite;
+}
+@keyframes scan { 0% { top: -2px; } 100% { top: 100%; } }
+
+/* Layout */
+.container {
+  position: relative; z-index: 10;
+  display: flex; flex-direction: column;
+  height: 100vh; padding: 38px 60px 10px;
+}
+
+/* Grid */
+.main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px; max-width: 2400px; width: 100%;
+  margin: 0 auto;
+}
+
+/* Cards */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 2px; padding: 20px 22px;
+  position: relative;
+  opacity: 0; transform: translateY(12px);
+  animation: card-in 0.5s ease forwards;
+}
+.card::after {
+  content: ''; position: absolute; inset: 0; border-radius: 2px;
+  box-shadow: var(--glow), inset 0 0 30px rgba(0,229,255,0.02);
+  pointer-events: none;
+}
+.card:nth-child(1) { animation-delay: 0.15s; }
+.card:nth-child(2) { animation-delay: 0.3s; }
+.card:nth-child(3) { animation-delay: 0.45s; }
+.card:nth-child(4) { animation-delay: 0.6s; }
+.card:nth-child(5) { animation-delay: 0.75s; }
+.card:nth-child(6) { animation-delay: 0.9s; }
+@keyframes card-in { to { opacity: 1; transform: translateY(0); } }
+
+/* Corner brackets */
+.card .c { position: absolute; width: 10px; height: 10px; opacity: 0.5; }
+.c.tl { top: -1px; left: -1px; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+.c.tr { top: -1px; right: -1px; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+.c.bl { bottom: -1px; left: -1px; border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+.c.br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+
+/* Card title with gear */
+.card-title {
+  font-size: 0.78rem; letter-spacing: 0.3rem; color: var(--cyan);
+  text-transform: uppercase; padding-bottom: 12px; margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.card-title::before { content: '\25C8  '; font-size: 0.65rem; }
+.gear {
+  cursor: pointer; opacity: 0.25; transition: opacity 0.3s;
+  font-size: 1.3rem; line-height: 1; padding: 2px 4px;
+}
+.gear:hover { opacity: 0.8; color: var(--cyan); }
+
+/* Config panel (toggled by gear) */
+.cfg-panel {
+  background: rgba(0,229,255,0.04); border: 1px solid var(--border);
+  border-radius: 2px; padding: 10px 12px; margin-bottom: 12px;
+  font-size: 0.72rem; color: var(--dim);
+}
+.cfg-path { color: var(--cyan); opacity: 0.6; }
+
+/* Data rows (shared across plugins) */
+.row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 0.82rem; }
+.row + .row { border-top: 1px solid rgba(0,229,255,0.04); }
+.label { color: var(--dim); }
+.val { color: var(--text); }
+.val.cy { color: var(--cyan); }
+.val.gr { color: var(--green); }
+.val.am { color: var(--amber); }
+.val.rd { color: var(--red); }
+.sep { height: 1px; background: var(--border); margin: 10px 0; }
+
+/* Weather hero (used by weather plugin) */
+.wx-hero { text-align: center; padding: 8px 0 14px; }
+.wx-icon { font-size: 2.6rem; line-height: 1; margin-bottom: 2px; }
+.wx-temp { font-size: 3rem; color: var(--cyan); line-height: 1.1; text-shadow: 0 0 18px rgba(0,229,255,0.25); }
+.wx-desc { font-size: 0.9rem; color: var(--text); margin-top: 4px; }
+.wx-city { font-size: 0.78rem; color: var(--dim); margin-top: 2px; letter-spacing: 0.15rem; }
+
+/* RAM bar */
+.bar-track { height: 4px; background: rgba(0,229,255,0.08); border-radius: 2px; margin-top: 4px; }
+.bar-fill { height: 100%; border-radius: 2px; background: var(--cyan); transition: width 1s ease; }
+
+/* Placeholder for empty/error cards */
+.ph { text-align: center; padding: 24px 10px; color: var(--dim); }
+.ph .ico { font-size: 1.8rem; opacity: 0.18; margin-bottom: 10px; }
+.ph p { font-size: 0.78rem; line-height: 1.7; }
+
+</style>
+</head>
+<body>
+
+<!-- Custom window chrome -->
+<div class="wm-bar" id="wm-bar">
+  <div class="wm-left">
+    <span class="wm-title"><span>&#9672;</span> GM // DASHBOARD</span>
+    <span class="wm-greeting" id="greeting"></span>
+    <span class="wm-date" id="date"></span>
+    <span class="wm-clock" id="clock"></span>
+  </div>
+  <div class="wm-controls">
+    <div class="wm-btn wm-min" id="wm-min" title="Minimize"></div>
+    <div class="wm-btn wm-close" id="wm-close" title="Close"></div>
+  </div>
+</div>
+
+<!-- Resize handles -->
+<div class="wm-rz wm-rz-n"  data-d="n"></div>
+<div class="wm-rz wm-rz-s"  data-d="s"></div>
+<div class="wm-rz wm-rz-w"  data-d="w"></div>
+<div class="wm-rz wm-rz-e"  data-d="e"></div>
+<div class="wm-rz wm-rz-nw" data-d="nw"></div>
+<div class="wm-rz wm-rz-ne" data-d="ne"></div>
+<div class="wm-rz wm-rz-sw" data-d="sw"></div>
+<div class="wm-rz wm-rz-se" data-d="se"></div>
+
+<div class="bg-grid"></div>
+<div class="vignette"></div>
+<div class="scan-beam"></div>
+<div class="scanlines"></div>
+
+<div class="container">
+  <div class="main">__CARDS__</div>
+</div>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+var GM = __GM_DATA__;
+
+/* ── Window Manager (Qt WebChannel bridge) ── */
+/* GM.wm is set globally so plugin scripts can use it */
+if (typeof QWebChannel !== 'undefined') {
+  new QWebChannel(qt.webChannelTransport, function(ch) {
+    GM.wm = ch.objects.wm;
+    var wm = GM.wm;
+
+    document.getElementById('wm-close').addEventListener('click', function() { wm.close(); });
+    document.getElementById('wm-min').addEventListener('click', function() { wm.minimize(); });
+
+    var bar = document.getElementById('wm-bar');
+    bar.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.wm-controls')) return;
+      if (e.button === 0) wm.startDrag();
+    });
+
+    document.querySelectorAll('.wm-rz').forEach(function(h) {
+      h.addEventListener('mousedown', function(e) {
+        if (e.button === 0) wm.startResize(h.dataset.d);
+      });
+    });
+
+    bar.addEventListener('dblclick', function(e) {
+      if (e.target.closest('.wm-controls')) return;
+      wm.toggleMaximize();
+    });
+
+    document.dispatchEvent(new Event('gm-bridge-ready'));
+  });
+}
+
+/* ── Dashboard ───────────────────────────────────────────────── */
+
+/* Title bar info */
+document.getElementById('greeting').textContent =
+  GM.greeting + (GM.name ? ', ' + GM.name.toUpperCase() : '');
+document.getElementById('date').textContent = GM.date;
+
+function tick() {
+  var n = new Date(), p = function(v){ return String(v).padStart(2,'0'); };
+  document.getElementById('clock').textContent =
+    p(n.getHours()) + ':' + p(n.getMinutes()) + ':' + p(n.getSeconds());
+}
+tick(); setInterval(tick, 1000);
+
+/* Gear toggle */
+function toggleCfg(id) {
+  var el = document.getElementById('cfg-' + id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+/* Shared helper: build a data row */
+function R(l,v,c) {
+  return '<div class="row"><span class="label">'+l+'</span><span class="val '+(c||'')+'">'+v+'</span></div>';
+}
+
+</script>
+
+__PLUGIN_SCRIPTS__
+
+</body>
+</html>

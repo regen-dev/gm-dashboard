@@ -1,0 +1,14 @@
+<script>
+(function() {
+  var d = (GM.plugins || {}).github;
+  var el = document.getElementById('p-github');
+  if (!d) { el.innerHTML = '<div class="ph"><div class="ico">\u2298</div><p>GITHUB OFFLINE</p></div>'; return; }
+  el.innerHTML =
+    R('Repositories', d.repos, 'cy') +
+    R('Total Stars', d.stars, 'cy') +
+    R('Total Forks', d.forks, 'cy') +
+    R('Followers', d.followers, 'cy') +
+    R('Following', d.following, 'cy') +
+    (d.contributions != null ? '<div class="sep"></div>' + R('Contributions (year)', d.contributions, 'cy') : '');
+})();
+</script>
